@@ -1,13 +1,12 @@
 require('dotenv').config();
- 
 const Hapi = require('@hapi/hapi');
 const routes = require('../server/routes');
 const loadModel = require('../services/loadModel');
-const InputError = require('../exception/InputError');
+const InputError = require('../exceptions/InputError');
  
 (async () => {
     const server = Hapi.server({
-        port: 3000,
+        port: process.env.PORT || 8000,
         host: '0.0.0.0',
         routes: {
             cors: {
@@ -23,20 +22,11 @@ const InputError = require('../exception/InputError');
  
     server.ext('onPreResponse', function (request, h) {
         const response = request.response;
-        
-        if (response.isBoom && response.output.statusCode === 413) {
-            const newResponse = h.response({
-              status: 'fail',
-              message: 'Payload content length greater than maximum allowed: 1000000',
-            });
-            newResponse.code(413);
-            return newResponse;
-          }
-
+ 
         if (response instanceof InputError) {
             const newResponse = h.response({
                 status: 'fail',
-                message: `${response.message} Silakan gunakan foto lain.`
+                message: `${response.message}`
             })
             newResponse.code(response.statusCode)
             return newResponse;
@@ -47,7 +37,7 @@ const InputError = require('../exception/InputError');
                 status: 'fail',
                 message: response.message
             })
-            newResponse.code(response.statusCode)
+            newResponse.code(response.output.statusCode)
             return newResponse;
         }
  
