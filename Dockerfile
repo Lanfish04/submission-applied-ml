@@ -1,8 +1,8 @@
-FROM node:18.17.1
+FROM node:20
 WORKDIR /app
-ENV PORT 3001
-ENV MODEL_URL 'https://storage.googleapis.com/model-ml-bucket1/submissions-model/model.json'
+ENV PORT 8000
+ENV MODEL_URL 'https://storage.googleapis.com/model-ml-bucket10/ml-model/model.json'
 COPY . .
 RUN npm install
-EXPOSE 3001
+EXPOSE 8000
 CMD [ "npm", "run", "start"]
