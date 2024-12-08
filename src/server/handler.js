@@ -6,7 +6,7 @@ async function postPredictHandler(request, h) {
     const { image } = request.payload;
     const { model } = request.server.app;
    
-    const { label, suggestion } = await predictClassification(model, image);
+    const { confidenceScore, label, suggestion } = await predictClassification(model, image);
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
    
@@ -16,50 +16,65 @@ async function postPredictHandler(request, h) {
       "suggestion": suggestion,
       "createdAt": createdAt
     }
-   
+    
     await storeData(id, data);
   
     const response = h.response({
       status: 'success',
-      message: 'Model is predicted successfully',
+      message: confidenceScore > 99 ? 'Model is predicted successfully' : 'Model is predicted successfully',
       data
     })
     response.code(201);
     return response;
   }
+ 
+  async function postPredictHistoriesHandler(request, h) {
+    try {
+        const db = new Firestore({
+            projectId: 'submissionmlgc-fadhlanhafidz',
+            keyFilename: 'credintials.json',
+        });
 
+        const predictCollection = db.collection('prediction');
+        const getAllData = await predictCollection.get();
 
-async function postPredictHistoriesHandler(request, h) {
-    const predictCollection = db.collection('prediction');
-    const getData = await predictCollection.get();
-    
-    if (getData.empty) {
+        if (getAllData.empty) {
+            return h.response({
+                status: 'success',
+                data: [],
+            }).code(200);
+        }
+
+        const histories = getAllData.docs.map((doc) => {
+            const historyData = doc.data();
+
+            const suggestion =
+                historyData.result === 'Non-cancer'
+                    ? 'Anda sehat!'
+                    : historyData.suggestion;
+
+            return {
+                id: doc.id,
+                history: {
+                    result: historyData.result,
+                    createdAt: historyData.createdAt,
+                    suggestion: suggestion,
+                    id: doc.id
+                },
+            };
+        });
+
         return h.response({
             status: 'success',
-            data: [],
+            data: histories,
         }).code(200);
-    }
+    } catch (error) {
+        console.error('Error fetching prediction histories:', error);
 
-    const dataFormat = [];
-    getData.forEach(doc => {
-        const data = doc.data();
-        dataFormat.push({
-            id: doc.id,
-            history: {
-                result: data.result,
-                createdAt: data.createdAt,
-                suggestion: data.suggestion,
-                id: doc.id
-            }
-        });
-    });
-    
-    const response = h.response({
-      status: 'success',
-      data: dataFormat
-    })
-    response.code(200);
-    return response;
-  }
-  
-  module.exports = { postPredictHandler, postPredictHistoriesHandler };
+        return h.response({
+            status: 'fail',
+            message: 'Terjadi kesalahan saat mengambil data prediksi.',
+        }).code(500);
+    }
+}
+  module.exports = { postPredictHandler, postPredictHistoriesHandler};
