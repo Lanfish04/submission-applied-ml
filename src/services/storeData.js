@@ -1,10 +1,20 @@
-const { Firestore } = require('@google-cloud/firestore');
- 
 async function storeData(id, data) {
-  const db = new Firestore();
- 
-  const predictCollection = db.collection('predictions');
-  return predictCollection.doc(id).set(data);
+  try {
+    const db = new Firestore({
+      projectId: 'submissionmlgc-fadhlanhafidz',
+      keyFilename: 'credintials.json',
+    });
+
+    
+    const predictCollection = db.collection('predictions');
+    await predictCollection.doc(id).set(data);
+
+
+    console.log(`Data successfully stored: ${id}`);
+  } catch (error) {
+    console.error('Error storing data to Firestore:', error.message);
+    throw error;
+  }
 }
- 
+
 module.exports = storeData;
